@@ -2,6 +2,7 @@ NOT YET EXECUTABLE
 
 #TODO: create debootstrap containers for isolated cross-compiling - assuming ubuntu/debian host
 
+KERNEL_TARGET=generic
 KERNEL_ARCH=x86_64
 KERNEL_VERSION=3.16.2
 AUFS_VERSION=3.16
@@ -34,7 +35,7 @@ cp ../aufs/fs ./ -R
 #cp ../aufs/include/linux/aufs_type.h ./include/linux/aufs_type.h
 cp ../aufs/include/uapi/linux/aufs_type.h ./include/uapi/linux/aufs_type.h
 cd ..
-cp ../configs/$KERNEL_ARCH linux-$KERNEL_VERSION/.config
+cp ../configs/$KERNEL_TARGET/$KERNEL_ARCH linux-$KERNEL_VERSION/.config
 cd linux-$KERNEL_VERSION
 #make menuconfig
 CC=$TOOL_CHAIN make -j$((CPU_CORE_NUM+1)) bzImage
