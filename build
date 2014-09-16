@@ -1,0 +1,50 @@
+NOT YET EXECUTABLE
+
+#TODO: create debootstrap containers for isolated cross-compiling - assuming ubuntu/debian host
+
+KERNEL_ARCH=x86_64
+KERNEL_VERSION=3.16.2
+AUFS_VERSION=3.16
+TOOL_CHAIN=gcc-4.9
+CPU_CORE_NUM=`nproc`
+OUTPUT_PATH=`pwd`/built/$KERNEL_ARCH
+mkdir $OUTPUT_PATH -p
+mkdir tmp
+cd tmp
+wget --no-check-certificate http://www.kernel.org/pub/linux/kernel/v3.x/linux-$KERNEL_VERSION.tar.xz
+tar xvJf linux-$KERNEL_VERSION.tar.xz
+rm linux-$KERNEL_VERSION.tar.xz
+wget --no-check-certificate http://mirrors.kernel.org/ubuntu/pool/main/l/linux-firmware/linux-firmware_1.134_all.deb
+ar vx linux-firmware_1.134_all.deb
+rm linux-firmware_1.134_all.deb debian-binary control.tar.gz
+mv data.tar.xz linux-firmware.tar.xz
+tar xvJf linux-firmware.tar.xz -C $OUTPUT_PATH ./lib/firmware
+rm linux-firmware.tar.xz
+git clone git://git.code.sf.net/p/aufs/aufs3-standalone aufs
+cd aufs
+git checkout aufs$AUFS_VERSION
+cd ..
+cd linux-$KERNEL_VERSION
+patch -p1 < ../aufs/aufs3-kbuild.patch
+patch -p1 < ../aufs/aufs3-base.patch
+patch -p1 < ../aufs/aufs3-mmap.patch
+patch -p1 < ../aufs/aufs3-standalone.patch
+cp ../aufs/Documentation ./ -R
+cp ../aufs/fs ./ -R
+#cp ../aufs/include/linux/aufs_type.h ./include/linux/aufs_type.h
+cp ../aufs/include/uapi/linux/aufs_type.h ./include/uapi/linux/aufs_type.h
+cd ..
+cp ../configs/$KERNEL_ARCH linux-$KERNEL_VERSION/.config
+cd linux-$KERNEL_VERSION
+#make menuconfig
+CC=$TOOL_CHAIN make -j$((CPU_CORE_NUM+1)) bzImage
+cp arch/x86_64/boot/bzImage $OUTPUT_PATH/vmlinux
+#CC=$TOOL_CHAIN make -j$((CPU_CORE_NUM+1)) vmlinux
+CC=$TOOL_CHAIN make -j$((CPU_CORE_NUM+1)) modules
+CC=$TOOL_CHAIN INSTALL_MOD_PATH=$OUTPUT_PATH make -j$((CPU_CORE_NUM+1)) modules_install
+# removing symlinks (should be maybe recreated in rootfs)
+rm $OUTPUT_PATH/lib/modules/$KERNEL_VERSION/build
+rm $OUTPUT_PATH/lib/modules/$KERNEL_VERSION/source
+CC=$TOOL_CHAIN INSTALL_MOD_PATH=$OUTPUT_PATH make -j$((CPU_CORE_NUM+1)) firmware_install
+cd ..
+cd ..
